@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { mockCases } from '@/data/mockCases';
 import { Bell, Plus, LayoutGrid, List, FileText, Phone, Heart } from 'lucide-react';
+import sapsLogo from '@/assets/saps-logo.png';
 
 export default function VictimDashboard() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -33,12 +34,21 @@ export default function VictimDashboard() {
       <main className="flex-1 container mx-auto px-4 py-8">
         {/* Welcome Banner */}
         <div className="bg-primary text-primary-foreground rounded-xl p-6 mb-8 animate-fade-in">
-          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">
-            Welcome Back
-          </h1>
-          <p className="opacity-90">
-            You have {userCases.length} active cases. Here's your latest updates.
-          </p>
+          <div className="flex items-center gap-4">
+            <img 
+              src={sapsLogo} 
+              alt="SAPS Logo" 
+              className="w-14 h-14 object-contain"
+            />
+            <div>
+              <h1 className="font-heading text-2xl md:text-3xl font-bold mb-1">
+                Welcome Back
+              </h1>
+              <p className="opacity-90">
+                You have {userCases.length} active cases. Here's your latest updates.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
