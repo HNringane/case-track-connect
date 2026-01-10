@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { Shield, Eye, EyeOff, Loader2, Info } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import sapsLogo from '@/assets/saps-logo.png';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -113,9 +114,11 @@ export default function Register() {
       <main className="flex-1 flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-lg card-elevated animate-fade-in">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 rounded-full bg-primary mx-auto mb-4 flex items-center justify-center">
-              <Shield className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img 
+              src={sapsLogo} 
+              alt="SAPS Logo" 
+              className="w-20 h-20 mx-auto mb-4 object-contain"
+            />
             <CardTitle className="font-heading text-2xl">Create Your Account</CardTitle>
             <CardDescription>Register to track your cases securely</CardDescription>
           </CardHeader>
