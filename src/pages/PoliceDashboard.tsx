@@ -4,7 +4,8 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { mockCases, stationStats, caseTypeStats } from '@/data/mockCases';
+import { UpdateCaseModal } from '@/components/UpdateCaseModal';
+import { mockCases, stationStats, caseTypeStats, Case } from '@/data/mockCases';
 import { 
   Search, 
   Filter, 
@@ -14,7 +15,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   BarChart3,
-  Users
+  Users,
+  Eye
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -28,6 +30,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { Link } from 'react-router-dom';
 
 const statusColors = {
   'Completed': 'status-completed',
@@ -46,6 +49,8 @@ const CHART_COLORS = ['hsl(210, 100%, 20%)', 'hsl(45, 100%, 50%)', 'hsl(174, 62%
 export default function PoliceDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
 
   const filteredCases = mockCases.filter(c => {
     const matchesSearch = c.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -66,6 +71,11 @@ export default function PoliceDashboard() {
     { id: 2, message: 'New high-priority case assigned to you', type: 'alert', time: '3 hours ago' },
     { id: 3, message: 'Case CT-2024-001198 marked as resolved', type: 'success', time: '1 day ago' },
   ];
+
+  const handleUpdateCase = (caseData: Case) => {
+    setSelectedCase(caseData);
+    setUpdateModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
@@ -122,7 +132,7 @@ export default function PoliceDashboard() {
                       className="pl-10"
                     />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {['all', 'in-progress', 'overdue', 'completed'].map((status) => (
                       <Button
                         key={status}
@@ -180,8 +190,18 @@ export default function PoliceDashboard() {
                           </td>
                           <td className="p-4">
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm">Update</Button>
-                              <Button variant="ghost" size="sm">View</Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleUpdateCase(caseData)}
+                              >
+                                Update
+                              </Button>
+                              <Link to={`/case/${caseData.id}`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </Link>
                             </div>
                           </td>
                         </tr>
@@ -288,10 +308,10 @@ export default function PoliceDashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Resolution Rate</span>
-                    <span className="font-medium">87%</span>
+                    <span className="font-medium">{Math.round((stats.resolved / stats.total) * 100)}%</span>
                   </div>
                   <div className="progress-bar">
-                    <div className="progress-bar-fill" style={{ width: '87%' }} />
+                    <div className="progress-bar-fill" style={{ width: `${(stats.resolved / stats.total) * 100}%` }} />
                   </div>
                 </div>
                 <div>
@@ -319,6 +339,13 @@ export default function PoliceDashboard() {
       </main>
 
       <Footer />
+      
+      {/* Update Case Modal */}
+      <UpdateCaseModal
+        open={updateModalOpen}
+        onOpenChange={setUpdateModalOpen}
+        caseData={selectedCase}
+      />
     </div>
   );
 }
