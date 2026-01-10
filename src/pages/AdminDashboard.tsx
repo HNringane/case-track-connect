@@ -14,10 +14,10 @@ import {
   TrendingUp,
   BarChart3,
   Settings,
-  Shield,
   Search,
   Activity
 } from 'lucide-react';
+import sapsLogo from '@/assets/saps-logo.png';
 import { 
   BarChart, 
   Bar, 
@@ -73,9 +73,11 @@ export default function AdminDashboard() {
         {/* Welcome Banner */}
         <div className="bg-primary text-primary-foreground rounded-xl p-6 mb-8 animate-fade-in">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center">
-              <Shield className="w-8 h-8 text-accent-foreground" />
-            </div>
+            <img 
+              src={sapsLogo} 
+              alt="SAPS Logo" 
+              className="w-14 h-14 object-contain"
+            />
             <div>
               <h1 className="font-heading text-2xl md:text-3xl font-bold mb-1">
                 Admin Dashboard

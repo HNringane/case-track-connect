@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { UpdateCaseModal } from '@/components/UpdateCaseModal';
+import { NotificationDetailModal, Notification } from '@/components/NotificationDetailModal';
 import { mockCases, stationStats, caseTypeStats, Case } from '@/data/mockCases';
 import { 
   Search, 
@@ -16,8 +17,10 @@ import {
   CheckCircle2,
   BarChart3,
   Users,
-  Eye
+  Eye,
+  ChevronRight
 } from 'lucide-react';
+import sapsLogo from '@/assets/saps-logo.png';
 import { 
   BarChart, 
   Bar, 
@@ -51,6 +54,38 @@ export default function PoliceDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([
+    { 
+      id: 1, 
+      message: 'Case CT-2024-001156 is overdue by 5 days', 
+      type: 'warning', 
+      time: '1 hour ago',
+      caseNumber: 'CT-2024-001156',
+      priority: 'high',
+      details: 'This case has exceeded the expected resolution timeline. The victim is awaiting an update on the investigation progress.',
+      actionRequired: 'Review the case and provide a status update to the victim immediately.'
+    },
+    { 
+      id: 2, 
+      message: 'New high-priority case assigned to you', 
+      type: 'alert', 
+      time: '3 hours ago',
+      caseNumber: 'CT-2024-001234',
+      priority: 'high',
+      details: 'A new assault case has been assigned to you. The incident occurred in Johannesburg CBD and requires immediate attention.',
+      actionRequired: 'Contact the victim within 24 hours and begin preliminary investigation.'
+    },
+    { 
+      id: 3, 
+      message: 'Case CT-2024-001198 marked as resolved', 
+      type: 'success', 
+      time: '1 day ago',
+      caseNumber: 'CT-2024-001198',
+      details: 'The theft case has been successfully resolved. The suspect was apprehended and the stolen property was recovered.',
+    },
+  ]);
 
   const filteredCases = mockCases.filter(c => {
     const matchesSearch = c.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -66,15 +101,24 @@ export default function PoliceDashboard() {
     resolved: mockCases.filter(c => c.statusLabel === 'Completed').length,
   };
 
-  const notifications = [
-    { id: 1, message: 'Case CT-2024-001156 is overdue by 5 days', type: 'warning', time: '1 hour ago' },
-    { id: 2, message: 'New high-priority case assigned to you', type: 'alert', time: '3 hours ago' },
-    { id: 3, message: 'Case CT-2024-001198 marked as resolved', type: 'success', time: '1 day ago' },
-  ];
-
   const handleUpdateCase = (caseData: Case) => {
     setSelectedCase(caseData);
     setUpdateModalOpen(true);
+  };
+
+  const handleViewNotification = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setNotificationModalOpen(true);
+  };
+
+  const handleMarkAsRead = (id: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleTakeAction = (id: number) => {
+    // In a real app, this would navigate to the case or perform an action
+    console.log('Taking action on notification', id);
+    handleMarkAsRead(id);
   };
 
   return (
@@ -283,19 +327,27 @@ export default function PoliceDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {notifications.map((notification) => (
+                {notifications.length > 0 ? notifications.map((notification) => (
                   <div 
                     key={notification.id} 
-                    className={`p-3 rounded-lg text-sm border-l-2 ${
+                    className={`p-3 rounded-lg text-sm border-l-2 cursor-pointer hover:opacity-90 transition-opacity ${
                       notification.type === 'warning' ? 'bg-warning/10 border-warning' :
                       notification.type === 'alert' ? 'bg-destructive/10 border-destructive' :
                       'bg-success/10 border-success'
                     }`}
+                    onClick={() => handleViewNotification(notification)}
                   >
-                    <p className="font-medium">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="font-medium">{notification.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-center text-muted-foreground py-4">No new alerts</p>
+                )}
               </CardContent>
             </Card>
 
@@ -345,6 +397,15 @@ export default function PoliceDashboard() {
         open={updateModalOpen}
         onOpenChange={setUpdateModalOpen}
         caseData={selectedCase}
+      />
+
+      {/* Notification Detail Modal */}
+      <NotificationDetailModal
+        open={notificationModalOpen}
+        onOpenChange={setNotificationModalOpen}
+        notification={selectedNotification}
+        onMarkAsRead={handleMarkAsRead}
+        onTakeAction={handleTakeAction}
       />
     </div>
   );
