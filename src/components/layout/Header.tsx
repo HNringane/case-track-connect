@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Moon, Sun, LogOut, User, Shield } from 'lucide-react';
+import { Moon, Sun, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import sapsLogo from '@/assets/saps-logo.png';
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -20,9 +21,11 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
-              <Shield className="w-6 h-6 text-accent-foreground" />
-            </div>
+            <img 
+              src={sapsLogo} 
+              alt="SAPS Logo" 
+              className="w-12 h-12 object-contain"
+            />
             <div className="flex flex-col">
               <span className="font-heading font-bold text-lg leading-tight">CaseTrack</span>
               <span className="text-xs opacity-80">SAPS Portal</span>

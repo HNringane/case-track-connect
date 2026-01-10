@@ -3,14 +3,15 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { SafeExitButton } from '@/components/SafeExitButton';
 import { CaseCard } from '@/components/CaseCard';
+import { NewCaseModal } from '@/components/NewCaseModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { mockCases } from '@/data/mockCases';
 import { Bell, Plus, LayoutGrid, List, FileText, Phone, Heart } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export default function VictimDashboard() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const userCases = mockCases.filter(c => c.victimId === '1');
   
   const notifications = [
@@ -61,11 +62,14 @@ export default function VictimDashboard() {
                     <List className="w-4 h-4" />
                   </button>
                 </div>
-                <Link to="/register">
-                  <Button variant="gold" size="sm" className="gap-1">
-                    <Plus className="w-4 h-4" /> New Case
-                  </Button>
-                </Link>
+                <Button 
+                  variant="gold" 
+                  size="sm" 
+                  className="gap-1"
+                  onClick={() => setShowNewCaseModal(true)}
+                >
+                  <Plus className="w-4 h-4" /> New Case
+                </Button>
               </div>
             </div>
 
@@ -84,9 +88,9 @@ export default function VictimDashboard() {
                   <p className="text-muted-foreground mb-4">
                     You haven't reported any cases yet. Start by reporting a new case.
                   </p>
-                  <Link to="/register">
-                    <Button variant="gold">Report a New Case</Button>
-                  </Link>
+                  <Button variant="gold" onClick={() => setShowNewCaseModal(true)}>
+                    Report a New Case
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -142,6 +146,12 @@ export default function VictimDashboard() {
       </main>
 
       <Footer />
+      
+      {/* New Case Modal */}
+      <NewCaseModal 
+        open={showNewCaseModal} 
+        onOpenChange={setShowNewCaseModal}
+      />
     </div>
   );
 }
