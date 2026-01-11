@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,13 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { Link } from 'react-router-dom';
+import { 
+  initializeCases, 
+  getCases, 
+  subscribeToCase,
+  updateCaseStatus
+} from '@/stores/caseStore';
+import { useToast } from '@/hooks/use-toast';
 
 const statusColors = {
   'Completed': 'status-completed',
@@ -50,12 +56,14 @@ const priorityColors = {
 const CHART_COLORS = ['hsl(210, 100%, 20%)', 'hsl(45, 100%, 50%)', 'hsl(174, 62%, 47%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)', 'hsl(210, 20%, 60%)'];
 
 export default function PoliceDashboard() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [allCases, setAllCases] = useState<Case[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([
     { 
       id: 1, 
@@ -87,7 +95,21 @@ export default function PoliceDashboard() {
     },
   ]);
 
-  const filteredCases = mockCases.filter(c => {
+  // Initialize cases on mount
+  useEffect(() => {
+    initializeCases(mockCases);
+    setAllCases(getCases());
+  }, []);
+
+  // Subscribe to case updates
+  useEffect(() => {
+    const unsubscribe = subscribeToCase(() => {
+      setAllCases(getCases());
+    });
+    return unsubscribe;
+  }, []);
+
+  const filteredCases = allCases.filter(c => {
     const matchesSearch = c.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          c.type.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || c.statusLabel.toLowerCase().replace(' ', '-') === statusFilter;
@@ -95,15 +117,26 @@ export default function PoliceDashboard() {
   });
 
   const stats = {
-    total: mockCases.length,
-    inProgress: mockCases.filter(c => c.statusLabel === 'In Progress').length,
-    overdue: mockCases.filter(c => c.statusLabel === 'Overdue').length,
-    resolved: mockCases.filter(c => c.statusLabel === 'Completed').length,
+    total: allCases.length,
+    inProgress: allCases.filter(c => c.statusLabel === 'In Progress').length,
+    overdue: allCases.filter(c => c.statusLabel === 'Overdue').length,
+    resolved: allCases.filter(c => c.statusLabel === 'Completed').length,
   };
 
   const handleUpdateCase = (caseData: Case) => {
     setSelectedCase(caseData);
     setUpdateModalOpen(true);
+  };
+
+  const handleCaseUpdated = (caseId: string, newStatus: string, notes: string) => {
+    const success = updateCaseStatus(caseId, newStatus as any, notes);
+    if (success) {
+      toast({
+        title: 'Case Updated',
+        description: 'The case status has been updated and the victim has been notified.',
+      });
+      setAllCases(getCases());
+    }
   };
 
   const handleViewNotification = (notification: Notification) => {
@@ -116,7 +149,6 @@ export default function PoliceDashboard() {
   };
 
   const handleTakeAction = (id: number) => {
-    // In a real app, this would navigate to the case or perform an action
     console.log('Taking action on notification', id);
     handleMarkAsRead(id);
   };
@@ -128,12 +160,21 @@ export default function PoliceDashboard() {
       <main className="flex-1 container mx-auto px-4 py-8">
         {/* Welcome Banner */}
         <div className="bg-primary text-primary-foreground rounded-xl p-6 mb-8 animate-fade-in">
-          <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">
-            Police Officer Dashboard
-          </h1>
-          <p className="opacity-90">
-            Manage and track your assigned cases. {stats.overdue} cases require immediate attention.
-          </p>
+          <div className="flex items-center gap-4">
+            <img 
+              src={sapsLogo} 
+              alt="SAPS Logo" 
+              className="w-14 h-14 object-contain"
+            />
+            <div>
+              <h1 className="font-heading text-2xl md:text-3xl font-bold mb-2">
+                Police Officer Dashboard
+              </h1>
+              <p className="opacity-90">
+                Manage and track your assigned cases. {stats.overdue} cases require immediate attention.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -241,11 +282,9 @@ export default function PoliceDashboard() {
                               >
                                 Update
                               </Button>
-                              <Link to={`/case/${caseData.id}`}>
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </Link>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -360,10 +399,10 @@ export default function PoliceDashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Resolution Rate</span>
-                    <span className="font-medium">{Math.round((stats.resolved / stats.total) * 100)}%</span>
+                    <span className="font-medium">{stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0}%</span>
                   </div>
                   <div className="progress-bar">
-                    <div className="progress-bar-fill" style={{ width: `${(stats.resolved / stats.total) * 100}%` }} />
+                    <div className="progress-bar-fill" style={{ width: `${stats.total > 0 ? (stats.resolved / stats.total) * 100 : 0}%` }} />
                   </div>
                 </div>
                 <div>
@@ -397,6 +436,7 @@ export default function PoliceDashboard() {
         open={updateModalOpen}
         onOpenChange={setUpdateModalOpen}
         caseData={selectedCase}
+        onCaseUpdated={handleCaseUpdated}
       />
 
       {/* Notification Detail Modal */}

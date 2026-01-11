@@ -11,7 +11,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import sapsLogo from '@/assets/saps-logo.png';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [saId, setSaId] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('victim');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,13 +21,43 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const validateSaId = (id: string): boolean => {
+    if (id.length !== 13) return false;
+    if (!/^\d+$/.test(id)) return false;
+    
+    // Luhn algorithm check
+    let sum = 0;
+    for (let i = 0; i < 13; i++) {
+      let digit = parseInt(id[i]);
+      if (i % 2 === 1) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+    }
+    return sum % 10 === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate SA ID
+    if (!validateSaId(saId)) {
+      setError('Please enter a valid 13-digit South African ID number.');
+      return;
+    }
+
+    // Validate password
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await login(email, password, role);
+      await login(saId, password, role);
       navigate(role === 'victim' ? '/victim' : role === 'police' ? '/police' : '/admin');
     } catch (err) {
       setError('Invalid credentials. Please try again.');
@@ -83,17 +113,21 @@ export default function Login() {
                 </p>
               </div>
 
-              {/* Email/Phone */}
+              {/* SA ID */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email or Phone Number</Label>
+                <Label htmlFor="saId">South African ID Number</Label>
                 <Input
-                  id="email"
+                  id="saId"
                   type="text"
-                  placeholder="name@example.com or 0821234567"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your 13-digit ID number"
+                  value={saId}
+                  onChange={(e) => setSaId(e.target.value.replace(/\D/g, '').slice(0, 13))}
+                  maxLength={13}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Your 13-digit South African ID number
+                </p>
               </div>
 
               {/* Password */}
@@ -103,7 +137,7 @@ export default function Login() {
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
+                    placeholder="Enter your password (min 8 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required

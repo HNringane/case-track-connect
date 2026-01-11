@@ -1,5 +1,6 @@
-import { Shield, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import sapsLogo from '@/assets/saps-logo.png';
 
 export function Footer() {
   return (
@@ -9,9 +10,11 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
-                <Shield className="w-6 h-6 text-accent-foreground" />
-              </div>
+              <img 
+                src={sapsLogo} 
+                alt="SAPS Logo" 
+                className="w-10 h-10 object-contain"
+              />
               <div>
                 <h3 className="font-heading font-bold text-lg">CaseTrack</h3>
                 <p className="text-xs opacity-80">SAPS Portal</p>

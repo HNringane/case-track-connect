@@ -1,8 +1,9 @@
 import { Case } from '@/data/mockCases';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Clock, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Clock, MapPin, Download } from 'lucide-react';
+import { downloadCaseReport } from '@/stores/caseStore';
+import { useToast } from '@/hooks/use-toast';
 
 interface CaseCardProps {
   caseData: Case;
@@ -17,6 +18,16 @@ const statusColors = {
 const stages = ['Submitted', 'Under Review', 'Investigation', 'Resolution'];
 
 export function CaseCard({ caseData }: CaseCardProps) {
+  const { toast } = useToast();
+
+  const handleDownloadReport = () => {
+    downloadCaseReport(caseData);
+    toast({
+      title: 'Report Downloaded',
+      description: `Case report for ${caseData.caseNumber} has been downloaded.`,
+    });
+  };
+
   return (
     <Card className="card-elevated animate-fade-in">
       <CardHeader className="pb-3">
@@ -57,17 +68,20 @@ export function CaseCard({ caseData }: CaseCardProps) {
           </div>
         </div>
 
-        {/* Last Update */}
+        {/* Last Update & Actions */}
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4" />
             <span>Updated {new Date(caseData.lastUpdate).toLocaleDateString('en-ZA')}</span>
           </div>
-          <Link to={`/case/${caseData.id}`}>
-            <Button variant="ghost" size="sm" className="gap-1">
-              View Details <ChevronRight className="w-4 h-4" />
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="gap-1"
+            onClick={handleDownloadReport}
+          >
+            <Download className="w-4 h-4" /> Report
+          </Button>
         </div>
       </CardContent>
     </Card>
