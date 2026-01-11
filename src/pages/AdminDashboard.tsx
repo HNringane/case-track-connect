@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { mockCases, stationStats, caseTypeStats } from '@/data/mockCases';
+import { mockCases, stationStats, caseTypeStats, Case } from '@/data/mockCases';
 import { 
   Users, 
   FileText, 
@@ -32,6 +32,13 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { 
+  initializeCases, 
+  getCases, 
+  subscribeToCase,
+  escalateCase
+} from '@/stores/caseStore';
+import { useToast } from '@/hooks/use-toast';
 
 const CHART_COLORS = ['hsl(210, 100%, 20%)', 'hsl(45, 100%, 50%)', 'hsl(174, 62%, 47%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)'];
 
@@ -44,15 +51,31 @@ const monthlyData = [
   { month: 'Jan', cases: 221, resolved: 198 },
 ];
 
-const stalledCases = mockCases.filter(c => c.statusLabel === 'Overdue');
-
 export default function AdminDashboard() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [allCases, setAllCases] = useState<Case[]>([]);
+
+  // Initialize cases on mount
+  useEffect(() => {
+    initializeCases(mockCases);
+    setAllCases(getCases());
+  }, []);
+
+  // Subscribe to case updates
+  useEffect(() => {
+    const unsubscribe = subscribeToCase(() => {
+      setAllCases(getCases());
+    });
+    return unsubscribe;
+  }, []);
+
+  const stalledCases = allCases.filter(c => c.statusLabel === 'Overdue');
 
   const stats = {
-    totalCases: mockCases.length,
+    totalCases: allCases.length,
     activeUsers: 1234,
-    resolvedCases: mockCases.filter(c => c.statusLabel === 'Completed').length,
+    resolvedCases: allCases.filter(c => c.statusLabel === 'Completed').length,
     stalledCases: stalledCases.length,
     avgResolutionDays: 14,
     totalStations: stationStats.length,
@@ -64,6 +87,23 @@ export default function AdminDashboard() {
     caseLoad: Math.round(s.cases / (s.cases / 10)),
     efficiency: Math.round((s.resolved / s.cases) * 100),
   }));
+
+  const handleEscalate = (caseData: Case) => {
+    const success = escalateCase(caseData.id);
+    if (success) {
+      toast({
+        title: 'Case Escalated',
+        description: `Case ${caseData.caseNumber} has been escalated for priority handling. The victim has been notified.`,
+      });
+      setAllCases(getCases());
+    } else {
+      toast({
+        title: 'Error',
+        description: 'Failed to escalate the case. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
@@ -212,7 +252,13 @@ export default function AdminDashboard() {
                         {caseData.stationName} • Last update: {new Date(caseData.lastUpdate).toLocaleDateString('en-ZA')}
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">Escalate</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEscalate(caseData)}
+                    >
+                      Escalate
+                    </Button>
                   </div>
                 )) : (
                   <p className="text-center text-muted-foreground py-4">No stalled cases</p>

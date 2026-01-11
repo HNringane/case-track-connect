@@ -11,7 +11,6 @@ import Register from "./pages/Register";
 import VictimDashboard from "./pages/VictimDashboard";
 import PoliceDashboard from "./pages/PoliceDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import CaseDetails from "./pages/CaseDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +30,6 @@ const App = () => (
               <Route path="/victim" element={<VictimDashboard />} />
               <Route path="/police" element={<PoliceDashboard />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/case/:id" element={<CaseDetails />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

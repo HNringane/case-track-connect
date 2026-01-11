@@ -1,30 +1,85 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { SafeExitButton } from '@/components/SafeExitButton';
 import { CaseCard } from '@/components/CaseCard';
 import { NewCaseModal } from '@/components/NewCaseModal';
+import { VictimNotificationModal, VictimNotification } from '@/components/VictimNotificationModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { mockCases } from '@/data/mockCases';
-import { Bell, Plus, LayoutGrid, List, FileText, Phone, Heart } from 'lucide-react';
+import { Bell, Plus, LayoutGrid, List, FileText, Phone, Heart, ChevronRight } from 'lucide-react';
 import sapsLogo from '@/assets/saps-logo.png';
+import { 
+  initializeCases, 
+  getCasesByVictimId, 
+  addCase, 
+  subscribeToCase,
+  getVictimNotifications,
+  markVictimNotificationAsRead,
+  subscribeToVictimNotifications
+} from '@/stores/caseStore';
 
 export default function VictimDashboard() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
-  const userCases = mockCases.filter(c => c.victimId === '1');
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<VictimNotification | null>(null);
+  const [userCases, setUserCases] = useState(getCasesByVictimId('1'));
+  const [notifications, setNotifications] = useState<VictimNotification[]>(getVictimNotifications());
   
-  const notifications = [
-    { id: 1, message: 'Case CT-2024-001234 has moved to Investigation stage', time: '2 hours ago', unread: true },
-    { id: 2, message: 'New resource: Victim Support Counseling available', time: '1 day ago', unread: false },
-  ];
+  // Initialize cases on mount
+  useEffect(() => {
+    initializeCases(mockCases);
+    setUserCases(getCasesByVictimId('1'));
+  }, []);
+
+  // Subscribe to case updates
+  useEffect(() => {
+    const unsubscribeCases = subscribeToCase(() => {
+      setUserCases(getCasesByVictimId('1'));
+    });
+    
+    const unsubscribeNotifications = subscribeToVictimNotifications(() => {
+      setNotifications(getVictimNotifications());
+    });
+    
+    return () => {
+      unsubscribeCases();
+      unsubscribeNotifications();
+    };
+  }, []);
+
+  const handleNewCase = (caseData: {
+    type: string;
+    province: string;
+    city: string;
+    location: string;
+    description: string;
+    anonymous: boolean;
+    date: string;
+  }) => {
+    addCase({ ...caseData, victimId: '1' });
+    setUserCases(getCasesByVictimId('1'));
+  };
+
+  const handleViewNotification = (notification: VictimNotification) => {
+    setSelectedNotification(notification);
+    setNotificationModalOpen(true);
+  };
+
+  const handleMarkAsRead = (id: number) => {
+    markVictimNotificationAsRead(id);
+    setNotifications(getVictimNotifications());
+  };
 
   const resources = [
     { icon: Phone, title: 'Emergency Helpline', description: 'Call 10111 for immediate assistance', action: 'Call Now' },
     { icon: Heart, title: 'Victim Support', description: 'Free counseling and support services', action: 'Learn More' },
     { icon: FileText, title: 'Legal Aid', description: 'Access free legal assistance', action: 'Get Help' },
   ];
+
+  const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
@@ -114,21 +169,35 @@ export default function VictimDashboard() {
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Bell className="w-5 h-5" />
                   Notifications
-                  <span className="ml-auto bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
-                    {notifications.filter(n => n.unread).length}
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="ml-auto bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {notifications.map((notification) => (
+                {notifications.length > 0 ? notifications.map((notification) => (
                   <div 
                     key={notification.id} 
-                    className={`p-3 rounded-lg text-sm ${notification.unread ? 'bg-primary/5 border-l-2 border-primary' : 'bg-muted'}`}
+                    className={`p-3 rounded-lg text-sm cursor-pointer hover:opacity-90 transition-opacity ${
+                      notification.unread 
+                        ? 'bg-primary/5 border-l-2 border-primary' 
+                        : 'bg-muted'
+                    }`}
+                    onClick={() => handleViewNotification(notification)}
                   >
-                    <p className={notification.unread ? 'font-medium' : ''}>{notification.message}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className={notification.unread ? 'font-medium' : ''}>{notification.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-center text-muted-foreground py-4">No notifications</p>
+                )}
               </CardContent>
             </Card>
 
@@ -161,6 +230,15 @@ export default function VictimDashboard() {
       <NewCaseModal 
         open={showNewCaseModal} 
         onOpenChange={setShowNewCaseModal}
+        onCaseSubmitted={handleNewCase}
+      />
+
+      {/* Notification Detail Modal */}
+      <VictimNotificationModal
+        open={notificationModalOpen}
+        onOpenChange={setNotificationModalOpen}
+        notification={selectedNotification}
+        onMarkAsRead={handleMarkAsRead}
       />
     </div>
   );

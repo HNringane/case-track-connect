@@ -12,7 +12,15 @@ import { FileText, MapPin, Shield, Eye, EyeOff } from 'lucide-react';
 interface NewCaseModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCaseSubmitted?: () => void;
+  onCaseSubmitted?: (caseData: {
+    type: string;
+    province: string;
+    city: string;
+    location: string;
+    description: string;
+    anonymous: boolean;
+    date: string;
+  }) => void;
 }
 
 const caseTypes = [
@@ -72,6 +80,17 @@ export function NewCaseModal({ open, onOpenChange, onCaseSubmitted }: NewCaseMod
     
     const caseNumber = `CT-2024-${String(Math.floor(Math.random() * 9000) + 1000).padStart(6, '0')}`;
     
+    // Notify parent component
+    onCaseSubmitted?.({
+      type: formData.caseType,
+      province: formData.province,
+      city: formData.city,
+      location: formData.location,
+      description: formData.description,
+      anonymous: formData.anonymous,
+      date: formData.date,
+    });
+    
     toast({
       title: 'Case Submitted Successfully',
       description: `Your case number is ${caseNumber}. You will receive updates on its progress.`,
@@ -88,7 +107,6 @@ export function NewCaseModal({ open, onOpenChange, onCaseSubmitted }: NewCaseMod
       date: '',
     });
     onOpenChange(false);
-    onCaseSubmitted?.();
   };
 
   return (
