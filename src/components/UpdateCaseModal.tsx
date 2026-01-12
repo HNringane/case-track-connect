@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Case, CaseStatus } from '@/data/mockCases';
 import { FileEdit, AlertCircle } from 'lucide-react';
-import { updateCaseStatus } from '@/stores/caseStore';
+import { updateCaseStatus } from '@/services/caseService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UpdateCaseModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ const statusOptions: { value: CaseStatus; label: string; description: string }[]
 
 export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }: UpdateCaseModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     status: caseData?.status || 'submitted',
@@ -54,29 +56,43 @@ export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }:
       return;
     }
 
-    if (!caseData) return;
+    if (!caseData || !user?.id) return;
 
     setIsSubmitting(true);
     
-    const success = updateCaseStatus(caseData.id, formData.status as CaseStatus, formData.notes);
-    
-    if (success) {
-      toast({
-        title: 'Case Updated',
-        description: `Case ${caseData.caseNumber} has been updated successfully.`,
-      });
-    } else {
+    try {
+      const success = await updateCaseStatus(
+        caseData.id, 
+        formData.status as any, 
+        formData.notes,
+        user.id
+      );
+      
+      if (success) {
+        toast({
+          title: 'Case Updated',
+          description: `Case ${caseData.caseNumber} has been updated successfully. The victim has been notified.`,
+        });
+        setFormData({ status: 'submitted', notes: '' });
+        onOpenChange(false);
+        onCaseUpdated?.();
+      } else {
+        toast({
+          title: 'Update Failed',
+          description: 'Failed to update the case. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating case:', error);
       toast({
         title: 'Update Failed',
         description: 'Failed to update the case. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
-    setFormData({ status: 'submitted', notes: '' });
-    onOpenChange(false);
-    onCaseUpdated?.();
   };
 
   if (!caseData) return null;
