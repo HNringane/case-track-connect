@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Case, CaseStatus } from '@/data/mockCases';
 import { FileEdit, AlertCircle } from 'lucide-react';
+import { updateCaseStatus } from '@/stores/caseStore';
 
 interface UpdateCaseModalProps {
   open: boolean;
@@ -31,6 +32,16 @@ export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }:
     notes: '',
   });
 
+  // Reset form when caseData changes
+  useEffect(() => {
+    if (caseData) {
+      setFormData({
+        status: caseData.status,
+        notes: '',
+      });
+    }
+  }, [caseData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -43,15 +54,24 @@ export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }:
       return;
     }
 
+    if (!caseData) return;
+
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const success = updateCaseStatus(caseData.id, formData.status as CaseStatus, formData.notes);
     
-    toast({
-      title: 'Case Updated',
-      description: `Case ${caseData?.caseNumber} has been updated successfully.`,
-    });
+    if (success) {
+      toast({
+        title: 'Case Updated',
+        description: `Case ${caseData.caseNumber} has been updated successfully.`,
+      });
+    } else {
+      toast({
+        title: 'Update Failed',
+        description: 'Failed to update the case. Please try again.',
+        variant: 'destructive',
+      });
+    }
     
     setIsSubmitting(false);
     setFormData({ status: 'submitted', notes: '' });

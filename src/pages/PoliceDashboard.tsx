@@ -128,15 +128,12 @@ export default function PoliceDashboard() {
     setUpdateModalOpen(true);
   };
 
-  const handleCaseUpdated = (caseId: string, newStatus: string, notes: string) => {
-    const success = updateCaseStatus(caseId, newStatus as any, notes);
-    if (success) {
-      toast({
-        title: 'Case Updated',
-        description: 'The case status has been updated and the victim has been notified.',
-      });
-      setAllCases(getCases());
-    }
+  const handleCaseUpdated = () => {
+    setAllCases(getCases());
+    toast({
+      title: 'Case Updated',
+      description: 'The case status has been updated and the victim has been notified.',
+    });
   };
 
   const handleViewNotification = (notification: Notification) => {
