@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Case } from '@/data/mockCases';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, Download } from 'lucide-react';
+import { Clock, MapPin, Download, Eye } from 'lucide-react';
 import { downloadCaseReport } from '@/stores/caseStore';
 import { useToast } from '@/hooks/use-toast';
+import { CaseDetailModal } from '@/components/CaseDetailModal';
 
 interface CaseCardProps {
   caseData: Case;
@@ -19,6 +21,7 @@ const stages = ['Submitted', 'Under Review', 'Investigation', 'Resolution'];
 
 export function CaseCard({ caseData }: CaseCardProps) {
   const { toast } = useToast();
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const handleDownloadReport = () => {
     downloadCaseReport(caseData);
@@ -74,16 +77,33 @@ export function CaseCard({ caseData }: CaseCardProps) {
             <Clock className="w-4 h-4" />
             <span>Updated {new Date(caseData.lastUpdate).toLocaleDateString('en-ZA')}</span>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="gap-1"
-            onClick={handleDownloadReport}
-          >
-            <Download className="w-4 h-4" /> Report
-          </Button>
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1"
+              onClick={() => setShowDetailModal(true)}
+            >
+              <Eye className="w-4 h-4" /> View
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1"
+              onClick={handleDownloadReport}
+            >
+              <Download className="w-4 h-4" /> Report
+            </Button>
+          </div>
         </div>
       </CardContent>
+
+      {/* Detail Modal with Timeline */}
+      <CaseDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        caseData={caseData}
+      />
     </Card>
   );
 }
