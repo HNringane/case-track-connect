@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { UpdateCaseModal } from '@/components/UpdateCaseModal';
+import { CaseDetailModal } from '@/components/CaseDetailModal';
 import { NotificationDetailModal, Notification } from '@/components/NotificationDetailModal';
 import { mockCases, stationStats, caseTypeStats, Case } from '@/data/mockCases';
 import { 
@@ -18,7 +19,8 @@ import {
   BarChart3,
   Users,
   Eye,
-  ChevronRight
+  ChevronRight,
+  FileEdit
 } from 'lucide-react';
 import sapsLogo from '@/assets/saps-logo.png';
 import { 
@@ -36,8 +38,7 @@ import {
 import { 
   initializeCases, 
   getCases, 
-  subscribeToCase,
-  updateCaseStatus
+  subscribeToCase
 } from '@/stores/caseStore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -60,6 +61,7 @@ export default function PoliceDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
@@ -126,6 +128,11 @@ export default function PoliceDashboard() {
   const handleUpdateCase = (caseData: Case) => {
     setSelectedCase(caseData);
     setUpdateModalOpen(true);
+  };
+
+  const handleViewCase = (caseData: Case) => {
+    setSelectedCase(caseData);
+    setViewModalOpen(true);
   };
 
   const handleCaseUpdated = () => {
@@ -273,14 +280,20 @@ export default function PoliceDashboard() {
                           <td className="p-4">
                             <div className="flex gap-2">
                               <Button 
-                                variant="outline" 
+                                variant="default" 
                                 size="sm"
+                                className="gap-1"
                                 onClick={() => handleUpdateCase(caseData)}
                               >
-                                Update
+                                <FileEdit className="w-4 h-4" /> Update
                               </Button>
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-4 h-4" />
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="gap-1"
+                                onClick={() => handleViewCase(caseData)}
+                              >
+                                <Eye className="w-4 h-4" /> View
                               </Button>
                             </div>
                           </td>
@@ -434,6 +447,13 @@ export default function PoliceDashboard() {
         onOpenChange={setUpdateModalOpen}
         caseData={selectedCase}
         onCaseUpdated={handleCaseUpdated}
+      />
+
+      {/* View Case Detail Modal */}
+      <CaseDetailModal
+        open={viewModalOpen}
+        onOpenChange={setViewModalOpen}
+        caseData={selectedCase}
       />
 
       {/* Notification Detail Modal */}
