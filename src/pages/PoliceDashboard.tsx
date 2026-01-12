@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { UpdateCaseModal } from '@/components/UpdateCaseModal';
 import { CaseDetailModal } from '@/components/CaseDetailModal';
 import { NotificationDetailModal, Notification } from '@/components/NotificationDetailModal';
-import { mockCases, stationStats, caseTypeStats, Case } from '@/data/mockCases';
+import { stationStats, caseTypeStats } from '@/data/mockCases';
 import { 
   Search, 
   Filter, 
@@ -20,7 +21,8 @@ import {
   Users,
   Eye,
   ChevronRight,
-  FileEdit
+  FileEdit,
+  Loader2
 } from 'lucide-react';
 import sapsLogo from '@/assets/saps-logo.png';
 import { 
@@ -35,20 +37,22 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { 
-  initializeCases, 
-  getCases, 
-  subscribeToCase
-} from '@/stores/caseStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Case,
+  fetchAllCases,
+  updateCaseStatus,
+  subscribeToCases,
+} from '@/services/caseService';
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   'Completed': 'status-completed',
   'In Progress': 'status-in-progress',
   'Overdue': 'status-overdue',
 };
 
-const priorityColors = {
+const priorityColors: Record<string, string> = {
   high: 'bg-destructive/20 text-destructive',
   medium: 'bg-warning/20 text-warning',
   low: 'bg-muted text-muted-foreground',
@@ -57,7 +61,10 @@ const priorityColors = {
 const CHART_COLORS = ['hsl(210, 100%, 20%)', 'hsl(45, 100%, 50%)', 'hsl(174, 62%, 47%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)', 'hsl(210, 20%, 60%)'];
 
 export default function PoliceDashboard() {
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
@@ -66,63 +73,70 @@ export default function PoliceDashboard() {
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [allCases, setAllCases] = useState<Case[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([
     { 
       id: 1, 
-      message: 'Case CT-2024-001156 is overdue by 5 days', 
-      type: 'warning', 
-      time: '1 hour ago',
-      caseNumber: 'CT-2024-001156',
-      priority: 'high',
-      details: 'This case has exceeded the expected resolution timeline. The victim is awaiting an update on the investigation progress.',
-      actionRequired: 'Review the case and provide a status update to the victim immediately.'
-    },
-    { 
-      id: 2, 
-      message: 'New high-priority case assigned to you', 
+      message: 'New case reported - requires assignment', 
       type: 'alert', 
-      time: '3 hours ago',
-      caseNumber: 'CT-2024-001234',
+      time: '1 hour ago',
       priority: 'high',
-      details: 'A new assault case has been assigned to you. The incident occurred in Johannesburg CBD and requires immediate attention.',
-      actionRequired: 'Contact the victim within 24 hours and begin preliminary investigation.'
-    },
-    { 
-      id: 3, 
-      message: 'Case CT-2024-001198 marked as resolved', 
-      type: 'success', 
-      time: '1 day ago',
-      caseNumber: 'CT-2024-001198',
-      details: 'The theft case has been successfully resolved. The suspect was apprehended and the stolen property was recovered.',
+      details: 'A new case has been reported and requires immediate assignment to an officer.',
+      actionRequired: 'Review and assign the case to an available officer.'
     },
   ]);
 
-  // Initialize cases on mount
+  // Redirect if not authenticated or not police/admin
   useEffect(() => {
-    initializeCases(mockCases);
-    setAllCases(getCases());
-  }, []);
+    if (!authLoading && (!user || (user.role !== 'police' && user.role !== 'admin'))) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
 
-  // Subscribe to case updates
+  // Fetch cases on mount
   useEffect(() => {
-    const unsubscribe = subscribeToCase(() => {
-      setAllCases(getCases());
+    if (!user?.id) return;
+
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const cases = await fetchAllCases();
+        setAllCases(cases);
+      } catch (error) {
+        console.error('Error loading cases:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load cases. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToCases(async () => {
+      const cases = await fetchAllCases();
+      setAllCases(cases);
     });
+
     return unsubscribe;
-  }, []);
+  }, [user?.id, toast]);
 
   const filteredCases = allCases.filter(c => {
-    const matchesSearch = c.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = c.case_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          c.type.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || c.statusLabel.toLowerCase().replace(' ', '-') === statusFilter;
+    const matchesStatus = statusFilter === 'all' || c.status_label.toLowerCase().replace(' ', '-') === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const stats = {
     total: allCases.length,
-    inProgress: allCases.filter(c => c.statusLabel === 'In Progress').length,
-    overdue: allCases.filter(c => c.statusLabel === 'Overdue').length,
-    resolved: allCases.filter(c => c.statusLabel === 'Completed').length,
+    inProgress: allCases.filter(c => c.status_label === 'In Progress').length,
+    overdue: allCases.filter(c => c.status_label === 'Overdue').length,
+    resolved: allCases.filter(c => c.status_label === 'Completed').length,
   };
 
   const handleUpdateCase = (caseData: Case) => {
@@ -135,12 +149,17 @@ export default function PoliceDashboard() {
     setViewModalOpen(true);
   };
 
-  const handleCaseUpdated = () => {
-    setAllCases(getCases());
-    toast({
-      title: 'Case Updated',
-      description: 'The case status has been updated and the victim has been notified.',
-    });
+  const handleCaseUpdated = async () => {
+    try {
+      const cases = await fetchAllCases();
+      setAllCases(cases);
+      toast({
+        title: 'Case Updated',
+        description: 'The case status has been updated and the victim has been notified.',
+      });
+    } catch (error) {
+      console.error('Error refreshing cases:', error);
+    }
   };
 
   const handleViewNotification = (notification: Notification) => {
@@ -156,6 +175,40 @@ export default function PoliceDashboard() {
     console.log('Taking action on notification', id);
     handleMarkAsRead(id);
   };
+
+  // Convert Case to legacy format for modals
+  const convertCaseForModal = (caseData: Case | null): any => {
+    if (!caseData) return null;
+    return {
+      id: caseData.id,
+      caseNumber: caseData.case_number,
+      type: caseData.type,
+      status: caseData.status,
+      statusLabel: caseData.status_label,
+      submittedDate: caseData.submitted_date,
+      lastUpdate: caseData.last_update,
+      progress: caseData.progress,
+      stationName: caseData.station_name || 'Not assigned',
+      victimId: caseData.victim_id,
+      priority: caseData.priority,
+      officerAssigned: caseData.officer_id ? 'Assigned' : undefined,
+      updates: (caseData.updates || []).map(u => ({
+        id: u.id,
+        date: u.created_at,
+        title: u.title,
+        description: u.description,
+        stage: u.stage,
+      })),
+    };
+  };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
@@ -175,7 +228,7 @@ export default function PoliceDashboard() {
                 Police Officer Dashboard
               </h1>
               <p className="opacity-90">
-                Manage and track your assigned cases. {stats.overdue} cases require immediate attention.
+                Manage and track assigned cases. {stats.overdue} case{stats.overdue !== 1 ? 's' : ''} require{stats.overdue === 1 ? 's' : ''} immediate attention.
               </p>
             </div>
           </div>
@@ -260,9 +313,9 @@ export default function PoliceDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCases.map((caseData) => (
+                      {filteredCases.length > 0 ? filteredCases.map((caseData) => (
                         <tr key={caseData.id} className="border-t hover:bg-muted/50 transition-colors">
-                          <td className="p-4 text-sm font-medium">{caseData.caseNumber}</td>
+                          <td className="p-4 text-sm font-medium">{caseData.case_number}</td>
                           <td className="p-4 text-sm">{caseData.type}</td>
                           <td className="p-4">
                             <span className={`text-xs px-2 py-1 rounded-full capitalize ${priorityColors[caseData.priority]}`}>
@@ -270,12 +323,12 @@ export default function PoliceDashboard() {
                             </span>
                           </td>
                           <td className="p-4">
-                            <span className={`status-badge ${statusColors[caseData.statusLabel]}`}>
-                              {caseData.statusLabel}
+                            <span className={`status-badge ${statusColors[caseData.status_label] || 'status-in-progress'}`}>
+                              {caseData.status_label}
                             </span>
                           </td>
                           <td className="p-4 text-sm text-muted-foreground">
-                            {new Date(caseData.lastUpdate).toLocaleDateString('en-ZA')}
+                            {new Date(caseData.last_update).toLocaleDateString('en-ZA')}
                           </td>
                           <td className="p-4">
                             <div className="flex gap-2">
@@ -298,7 +351,13 @@ export default function PoliceDashboard() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      )) : (
+                        <tr>
+                          <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                            {allCases.length === 0 ? 'No cases found. Cases will appear here when victims report them.' : 'No cases match your search criteria.'}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -370,9 +429,11 @@ export default function PoliceDashboard() {
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Bell className="w-5 h-5" />
                   Alerts
-                  <span className="ml-auto bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
-                    {notifications.length}
-                  </span>
+                  {notifications.length > 0 && (
+                    <span className="ml-auto bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
+                      {notifications.length}
+                    </span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -427,7 +488,7 @@ export default function PoliceDashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span>Cases Updated Today</span>
-                    <span className="font-medium">12</span>
+                    <span className="font-medium">{allCases.filter(c => new Date(c.last_update).toDateString() === new Date().toDateString()).length}</span>
                   </div>
                   <div className="progress-bar">
                     <div className="progress-bar-fill bg-primary" style={{ width: '75%' }} />
@@ -445,7 +506,7 @@ export default function PoliceDashboard() {
       <UpdateCaseModal
         open={updateModalOpen}
         onOpenChange={setUpdateModalOpen}
-        caseData={selectedCase}
+        caseData={convertCaseForModal(selectedCase)}
         onCaseUpdated={handleCaseUpdated}
       />
 
@@ -453,7 +514,7 @@ export default function PoliceDashboard() {
       <CaseDetailModal
         open={viewModalOpen}
         onOpenChange={setViewModalOpen}
-        caseData={selectedCase}
+        caseData={convertCaseForModal(selectedCase)}
       />
 
       {/* Notification Detail Modal */}

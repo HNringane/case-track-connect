@@ -1,56 +1,107 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { SafeExitButton } from '@/components/SafeExitButton';
 import { CaseCard } from '@/components/CaseCard';
 import { NewCaseModal } from '@/components/NewCaseModal';
-import { VictimNotificationModal, VictimNotification } from '@/components/VictimNotificationModal';
+import { VictimNotificationModal } from '@/components/VictimNotificationModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockCases } from '@/data/mockCases';
-import { Bell, Plus, LayoutGrid, List, FileText, Phone, Heart, ChevronRight } from 'lucide-react';
+import { Bell, Plus, LayoutGrid, List, FileText, Phone, Heart, ChevronRight, Loader2 } from 'lucide-react';
 import sapsLogo from '@/assets/saps-logo.png';
-import { 
-  initializeCases, 
-  getCasesByVictimId, 
-  addCase, 
-  subscribeToCase,
-  getVictimNotifications,
-  markVictimNotificationAsRead,
-  subscribeToVictimNotifications
-} from '@/stores/caseStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Case,
+  fetchVictimCases,
+  createCase,
+  fetchNotifications,
+  markNotificationAsRead,
+  subscribeToCases,
+  subscribeToNotifications,
+} from '@/services/caseService';
+
+interface Notification {
+  id: string;
+  case_number: string | null;
+  message: string;
+  details: string | null;
+  priority: string | null;
+  type: string | null;
+  is_read: boolean;
+  created_at: string;
+}
 
 export default function VictimDashboard() {
+  const { user, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
-  const [selectedNotification, setSelectedNotification] = useState<VictimNotification | null>(null);
-  const [userCases, setUserCases] = useState(getCasesByVictimId('1'));
-  const [notifications, setNotifications] = useState<VictimNotification[]>(getVictimNotifications());
-  
-  // Initialize cases on mount
-  useEffect(() => {
-    initializeCases(mockCases);
-    setUserCases(getCasesByVictimId('1'));
-  }, []);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [userCases, setUserCases] = useState<Case[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Subscribe to case updates
+  // Redirect if not authenticated
   useEffect(() => {
-    const unsubscribeCases = subscribeToCase(() => {
-      setUserCases(getCasesByVictimId('1'));
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
+
+  // Fetch cases and notifications on mount
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [cases, notifs] = await Promise.all([
+          fetchVictimCases(user.id),
+          fetchNotifications(user.id),
+        ]);
+        setUserCases(cases);
+        setNotifications(notifs);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load your cases. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+
+    // Subscribe to real-time updates
+    const unsubscribeCases = subscribeToCases(async () => {
+      const cases = await fetchVictimCases(user.id);
+      setUserCases(cases);
     });
-    
-    const unsubscribeNotifications = subscribeToVictimNotifications(() => {
-      setNotifications(getVictimNotifications());
+
+    const unsubscribeNotifications = subscribeToNotifications(user.id, async () => {
+      const notifs = await fetchNotifications(user.id);
+      setNotifications(notifs);
+      toast({
+        title: 'New Update',
+        description: 'You have a new case update.',
+      });
     });
-    
+
     return () => {
       unsubscribeCases();
       unsubscribeNotifications();
     };
-  }, []);
+  }, [user?.id, toast]);
 
-  const handleNewCase = (caseData: {
+  const handleNewCase = async (caseData: {
     type: string;
     province: string;
     city: string;
@@ -59,18 +110,36 @@ export default function VictimDashboard() {
     anonymous: boolean;
     date: string;
   }) => {
-    addCase({ ...caseData, victimId: '1' });
-    setUserCases(getCasesByVictimId('1'));
+    if (!user?.id) return;
+
+    try {
+      await createCase(user.id, caseData);
+      const cases = await fetchVictimCases(user.id);
+      setUserCases(cases);
+      toast({
+        title: 'Case Submitted',
+        description: 'Your case has been submitted successfully.',
+      });
+    } catch (error) {
+      console.error('Error creating case:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit case. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleViewNotification = (notification: VictimNotification) => {
+  const handleViewNotification = (notification: Notification) => {
     setSelectedNotification(notification);
     setNotificationModalOpen(true);
   };
 
-  const handleMarkAsRead = (id: number) => {
-    markVictimNotificationAsRead(id);
-    setNotifications(getVictimNotifications());
+  const handleMarkAsRead = async (id: string) => {
+    await markNotificationAsRead(id);
+    setNotifications(prev => prev.map(n => 
+      n.id === id ? { ...n, is_read: true } : n
+    ));
   };
 
   const resources = [
@@ -79,7 +148,29 @@ export default function VictimDashboard() {
     { icon: FileText, title: 'Legal Aid', description: 'Access free legal assistance', action: 'Get Help' },
   ];
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  // Convert database notification to modal format
+  const formatNotificationForModal = (notification: Notification | null) => {
+    if (!notification) return null;
+    return {
+      id: parseInt(notification.id) || 0,
+      caseNumber: notification.case_number || '',
+      message: notification.message,
+      time: new Date(notification.created_at).toLocaleString('en-ZA'),
+      unread: !notification.is_read,
+      details: notification.details || undefined,
+      priority: notification.priority as 'low' | 'medium' | 'high' | undefined,
+    };
+  };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
@@ -97,10 +188,10 @@ export default function VictimDashboard() {
             />
             <div>
               <h1 className="font-heading text-2xl md:text-3xl font-bold mb-1">
-                Welcome Back
+                Welcome Back{user?.name ? `, ${user.name}` : ''}
               </h1>
               <p className="opacity-90">
-                You have {userCases.length} active cases. Here's your latest updates.
+                You have {userCases.length} active case{userCases.length !== 1 ? 's' : ''}. Here's your latest updates.
               </p>
             </div>
           </div>
@@ -141,7 +232,7 @@ export default function VictimDashboard() {
             {/* Cases Grid/List */}
             <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 gap-4' : 'space-y-4'}>
               {userCases.map((caseData) => (
-                <CaseCard key={caseData.id} caseData={caseData} />
+                <CaseCard key={caseData.id} caseData={caseData as any} />
               ))}
             </div>
 
@@ -177,11 +268,11 @@ export default function VictimDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {notifications.length > 0 ? notifications.map((notification) => (
+                {notifications.length > 0 ? notifications.slice(0, 5).map((notification) => (
                   <div 
                     key={notification.id} 
                     className={`p-3 rounded-lg text-sm cursor-pointer hover:opacity-90 transition-opacity ${
-                      notification.unread 
+                      !notification.is_read 
                         ? 'bg-primary/5 border-l-2 border-primary' 
                         : 'bg-muted'
                     }`}
@@ -189,8 +280,10 @@ export default function VictimDashboard() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <p className={notification.unread ? 'font-medium' : ''}>{notification.message}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                        <p className={!notification.is_read ? 'font-medium' : ''}>{notification.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(notification.created_at).toLocaleString('en-ZA')}
+                        </p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                     </div>
@@ -237,8 +330,8 @@ export default function VictimDashboard() {
       <VictimNotificationModal
         open={notificationModalOpen}
         onOpenChange={setNotificationModalOpen}
-        notification={selectedNotification}
-        onMarkAsRead={handleMarkAsRead}
+        notification={formatNotificationForModal(selectedNotification)}
+        onMarkAsRead={(id) => handleMarkAsRead(String(id))}
       />
     </div>
   );
