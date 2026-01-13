@@ -102,8 +102,8 @@ export default function PoliceDashboard() {
       try {
         const cases = await fetchAllCases();
         setAllCases(cases);
-      } catch (error) {
-        console.error('Error loading cases:', error);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'An error occurred';
         toast({
           title: 'Error',
           description: 'Failed to load cases. Please try again.',
@@ -157,8 +157,8 @@ export default function PoliceDashboard() {
         title: 'Case Updated',
         description: 'The case status has been updated and the victim has been notified.',
       });
-    } catch (error) {
-      console.error('Error refreshing cases:', error);
+    } catch (error: unknown) {
+      console.error('Error refreshing cases:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 

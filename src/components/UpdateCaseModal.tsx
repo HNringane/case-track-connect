@@ -9,6 +9,13 @@ import { Case, CaseStatus } from '@/data/mockCases';
 import { FileEdit, AlertCircle } from 'lucide-react';
 import { updateCaseStatus } from '@/services/caseService';
 import { useAuth } from '@/contexts/AuthContext';
+import { z } from 'zod';
+
+// Input validation schema for case notes
+const notesSchema = z.string()
+  .min(1, 'Note is required')
+  .max(2000, 'Note must be less than 2000 characters')
+  .refine((val) => !/<script/i.test(val), 'Invalid characters detected');
 
 interface UpdateCaseModalProps {
   open: boolean;
@@ -47,10 +54,13 @@ export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.notes.trim()) {
+    // Validate notes with zod
+    const validationResult = notesSchema.safeParse(formData.notes.trim());
+    
+    if (!validationResult.success) {
       toast({
-        title: 'Note Required',
-        description: 'Please add a note describing the update.',
+        title: 'Validation Error',
+        description: validationResult.error.errors[0]?.message || 'Invalid note content',
         variant: 'destructive',
       });
       return;
@@ -58,13 +68,18 @@ export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }:
 
     if (!caseData || !user?.id) return;
 
+    // Sanitize the notes by escaping potential HTML
+    const sanitizedNotes = formData.notes.trim()
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    
     setIsSubmitting(true);
     
     try {
       const success = await updateCaseStatus(
         caseData.id, 
         formData.status as any, 
-        formData.notes,
+        sanitizedNotes,
         user.id
       );
       
@@ -83,8 +98,9 @@ export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }:
           variant: 'destructive',
         });
       }
-    } catch (error) {
-      console.error('Error updating case:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error updating case:', errorMessage);
       toast({
         title: 'Update Failed',
         description: 'Failed to update the case. Please try again.',
@@ -165,9 +181,10 @@ export function UpdateCaseModal({ open, onOpenChange, caseData, onCaseUpdated }:
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={4}
               className="resize-none"
+              maxLength={2000}
             />
             <p className="text-xs text-muted-foreground">
-              This note will be visible to the victim in their case timeline.
+              This note will be visible to the victim in their case timeline. ({formData.notes.length}/2000 characters)
             </p>
           </div>
 
