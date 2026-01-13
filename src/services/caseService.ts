@@ -61,8 +61,8 @@ export async function fetchAllCases(): Promise<Case[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching cases:', error);
-    throw error;
+    console.error('Error fetching cases:', error.message);
+    throw new Error('Failed to fetch cases');
   }
 
   // Fetch updates for each case
@@ -93,8 +93,8 @@ export async function fetchVictimCases(victimId: string): Promise<Case[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching victim cases:', error);
-    throw error;
+    console.error('Error fetching victim cases:', error.message);
+    throw new Error('Failed to fetch your cases');
   }
 
   // Fetch updates for each case
@@ -125,7 +125,7 @@ export async function fetchCaseById(caseId: string): Promise<Case | null> {
     .single();
 
   if (error) {
-    console.error('Error fetching case:', error);
+    console.error('Error fetching case:', error.message);
     return null;
   }
 
@@ -164,8 +164,8 @@ export async function createCase(victimId: string, data: CreateCaseData): Promis
     .single();
 
   if (error) {
-    console.error('Error creating case:', error);
-    throw error;
+    console.error('Error creating case:', error.message);
+    throw new Error('Failed to create case');
   }
 
   // Create initial update
@@ -195,7 +195,7 @@ export async function updateCaseStatus(
     .single();
 
   if (fetchError || !currentCase) {
-    console.error('Error fetching case:', fetchError);
+    console.error('Error fetching case:', fetchError?.message);
     return false;
   }
 
@@ -206,7 +206,7 @@ export async function updateCaseStatus(
     .eq('id', caseId);
 
   if (updateError) {
-    console.error('Error updating case:', updateError);
+    console.error('Error updating case:', updateError.message);
     return false;
   }
 
@@ -229,7 +229,7 @@ export async function updateCaseStatus(
   });
 
   if (updateInsertError) {
-    console.error('Error inserting case update:', updateInsertError);
+    console.error('Error inserting case update:', updateInsertError.message);
   }
 
   // Notify victim if they exist
@@ -257,7 +257,7 @@ export async function fetchNotifications(userId: string) {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('Error fetching notifications:', error.message);
     return [];
   }
 
@@ -272,7 +272,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<bo
     .eq('id', notificationId);
 
   if (error) {
-    console.error('Error marking notification as read:', error);
+    console.error('Error marking notification as read:', error.message);
     return false;
   }
 

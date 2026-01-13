@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .single();
 
     if (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profile:', error.message);
       return null;
     }
     return data;
@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) {
-      console.error('Login error:', error);
+      console.error('Login error:', error.message);
       throw new Error(error.message);
     }
 
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error:', error.message);
       toast({
         title: 'Error',
         description: 'Failed to sign out. Please try again.',
@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) {
-      console.error('Registration error:', error);
+      console.error('Registration error:', error.message);
       throw new Error(error.message);
     }
 

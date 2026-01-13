@@ -66,8 +66,8 @@ export default function VictimDashboard() {
         ]);
         setUserCases(cases);
         setNotifications(notifs);
-      } catch (error) {
-        console.error('Error loading data:', error);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'An error occurred';
         toast({
           title: 'Error',
           description: 'Failed to load your cases. Please try again.',
@@ -120,8 +120,8 @@ export default function VictimDashboard() {
         title: 'Case Submitted',
         description: 'Your case has been submitted successfully.',
       });
-    } catch (error) {
-      console.error('Error creating case:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       toast({
         title: 'Error',
         description: 'Failed to submit case. Please try again.',
