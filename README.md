@@ -1,73 +1,89 @@
 # Welcome to Case Tracker
 
-## Project info
+Live Application
+🌐 https://case-track-connect.lovable.app
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Overview
 
-## How can I edit this code?
+Case Track Connect is a modern web application built with React and TypeScript, designed to provide a fast, responsive, and scalable user experience. The project uses a clean component-based architecture and modern styling tools to ensure maintainability and performance.
 
-There are several ways of editing your application.
+Getting Started
 
-**Use Lovable**
+You can run the project locally by following the steps below.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+Make sure you have the following installed:
 
-**Use your preferred IDE**
+Node.js
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+npm
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+(Recommended: install Node using nvm
+)
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+Running the Project Locally
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Navigate into the project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
-```
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The app will start with hot reloading enabled and can be viewed in your browser.
 
-**Use GitHub Codespaces**
+Editing the Code
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+You can edit the project using any of the following approaches:
 
-## What technologies are used for this project?
+1. Local Development
 
-This project is built with:
+Open the project in your preferred IDE (VS Code, IntelliJ, etc.)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Make changes to the source files
 
-## How can I deploy this project?
+Commit and push your updates to the repository
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+2. GitHub Web Editor
 
-## Can I connect a custom domain to my Lovable project?
+Navigate to any file in the repository
 
-Yes, you can!
+Click the Edit (✏️) icon
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Commit changes directly through GitHub
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+3. GitHub Codespaces
+
+Open the repository on GitHub
+
+Click Code → Codespaces → New codespace
+
+Edit, commit, and push changes directly from the browser
+
+Technologies Used
+
+Vite
+
+TypeScript
+
+React
+
+shadcn/ui
+
+Tailwind CSS
+
+Deployment
+
+The application is deployed and accessible at:
+
+👉 https://case-track-connect.lovable.app
+
+Notes
+
+This project follows modern frontend best practices, including component reusability, type safety, and responsive design.
