@@ -24,10 +24,10 @@ npm
 
 Running the Project Locally
 # Clone the repository
-git clone <YOUR_GIT_URL>
+
 
 # Navigate into the project directory
-cd <YOUR_PROJECT_NAME>
+
 
 # Install dependencies
 npm install
