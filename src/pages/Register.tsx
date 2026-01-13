@@ -8,9 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Loader2, Info } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Info, User, Shield, ShieldCheck } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import sapsLogo from '@/assets/saps-logo.png';
+
+const roleOptions: { value: UserRole; label: string; icon: React.ElementType; description: string }[] = [
+  { value: 'victim', label: 'Victim / Reporter', icon: User, description: 'Report and track cases' },
+  { value: 'police', label: 'Police Officer', icon: Shield, description: 'Manage and update cases' },
+  { value: 'admin', label: 'Administrator', icon: ShieldCheck, description: 'Full system access' },
+];
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -99,9 +105,17 @@ export default function Register() {
         anonymous: formData.anonymous,
         role: formData.role,
       });
-      navigate('/victim');
-    } catch (err) {
-      setErrors({ submit: 'Registration failed. Please try again.' });
+      // Navigate based on role
+      if (formData.role === 'admin') {
+        navigate('/admin');
+      } else if (formData.role === 'police') {
+        navigate('/police');
+      } else {
+        navigate('/victim');
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -124,25 +138,58 @@ export default function Register() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Anonymous Mode Toggle */}
-              <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="anonymous" className="font-medium">Anonymous Mode</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>When enabled, your identity is hidden from police and the public. Only essential case information is shared.</p>
-                    </TooltipContent>
-                  </Tooltip>
+              {/* Role Selection */}
+              <div className="space-y-3">
+                <Label>Register As</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {roleOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, role: option.value }))}
+                      className={`p-4 rounded-lg border-2 transition-all text-center ${
+                        formData.role === option.value
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <option.icon className={`w-6 h-6 mx-auto mb-2 ${
+                        formData.role === option.value ? 'text-primary' : 'text-muted-foreground'
+                      }`} />
+                      <div className={`text-sm font-medium ${
+                        formData.role === option.value ? 'text-primary' : ''
+                      }`}>
+                        {option.label}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {option.description}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <Switch
-                  id="anonymous"
-                  checked={formData.anonymous}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, anonymous: checked }))}
-                />
               </div>
+
+              {/* Anonymous Mode Toggle - only show for victim role */}
+              {formData.role === 'victim' && (
+                <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="anonymous" className="font-medium">Anonymous Mode</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>When enabled, your identity is hidden from police and the public. Only essential case information is shared.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Switch
+                    id="anonymous"
+                    checked={formData.anonymous}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, anonymous: checked }))}
+                  />
+                </div>
+              )}
 
               {/* Full Name */}
               <div className="space-y-2">

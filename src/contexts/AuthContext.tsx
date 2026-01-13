@@ -176,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id_number: data.saId,
           phone: data.phone,
           anonymous: data.anonymous,
+          role: data.role, // Include role in user metadata
         },
       },
     });
