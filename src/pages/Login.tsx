@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +18,23 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Clear form when component mounts (e.g., after logout)
+  useEffect(() => {
+    setSaId('');
+    setPassword('');
+    setShowPassword(false);
+    setError('');
+  }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(role === 'victim' ? '/victim' : role === 'police' ? '/police' : '/admin');
+    }
+  }, [isAuthenticated, role, navigate]);
 
   const validateSaId = (id: string): boolean => {
     // Simple validation: just check it's exactly 13 digits

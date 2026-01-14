@@ -95,30 +95,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Set up auth state listener FIRST (synchronous callback)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setSupabaseUser(session?.user ?? null);
       
       if (session?.user) {
-        const authUser = await buildAuthUser(session.user);
-        setUser(authUser);
-      }
-      setIsLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setSupabaseUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const authUser = await buildAuthUser(session.user);
-        setUser(authUser);
+        // Defer Supabase calls with setTimeout to avoid deadlock
+        setTimeout(() => {
+          buildAuthUser(session.user).then(authUser => {
+            setUser(authUser);
+            setIsLoading(false);
+          });
+        }, 0);
       } else {
         setUser(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setSupabaseUser(session?.user ?? null);
+      
+      if (session?.user) {
+        buildAuthUser(session.user).then(authUser => {
+          setUser(authUser);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
