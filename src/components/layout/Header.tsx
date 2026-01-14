@@ -54,7 +54,7 @@ export function Header() {
                   Login
                 </Link>
                 <Link to="/register">
-                  <Button variant="gold" size="sm">Report a Case</Button>
+                  <Button variant="gold" size="sm">Register</Button>
                 </Link>
               </>
             )}

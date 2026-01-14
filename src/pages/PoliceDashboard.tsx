@@ -237,12 +237,17 @@ export default function PoliceDashboard() {
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Total Cases', value: stats.total, icon: Users, color: 'bg-primary' },
-            { label: 'In Progress', value: stats.inProgress, icon: Clock, color: 'bg-warning' },
-            { label: 'Overdue', value: stats.overdue, icon: AlertTriangle, color: 'bg-destructive' },
-            { label: 'Resolved', value: stats.resolved, icon: CheckCircle2, color: 'bg-success' },
+            { label: 'Total Cases', value: stats.total, icon: Users, color: 'bg-primary', filter: 'all' },
+            { label: 'In Progress', value: stats.inProgress, icon: Clock, color: 'bg-warning', filter: 'in-progress' },
+            { label: 'Overdue', value: stats.overdue, icon: AlertTriangle, color: 'bg-destructive', filter: 'overdue' },
+            { label: 'Resolved', value: stats.resolved, icon: CheckCircle2, color: 'bg-success', filter: 'completed' },
           ].map((stat, index) => (
-            <Card key={stat.label} className="card-elevated animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
+            <Card 
+              key={stat.label} 
+              className={`card-elevated animate-slide-up cursor-pointer transition-all hover:scale-105 hover:shadow-lg ${statusFilter === stat.filter ? 'ring-2 ring-primary' : ''}`}
+              style={{ animationDelay: `${index * 100}ms` }}
+              onClick={() => setStatusFilter(stat.filter)}
+            >
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
