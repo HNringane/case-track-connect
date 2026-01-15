@@ -1,8 +1,15 @@
-import { CaseUpdate } from '@/data/mockCases';
 import { CheckCircle2, Circle, Clock } from 'lucide-react';
 
+interface TimelineUpdate {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+  stage: string;
+}
+
 interface CaseTimelineProps {
-  updates: CaseUpdate[];
+  updates: TimelineUpdate[];
   currentStatus: string;
 }
 
