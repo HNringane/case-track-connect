@@ -18,7 +18,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
 
   // Clear form when component mounts (e.g., after logout)
@@ -29,12 +29,12 @@ export default function Login() {
     setError('');
   }, []);
 
-  // Only redirect if authenticated AFTER auth has finished loading
+  // Redirect authenticated users to THEIR dashboard (not the selected chip)
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate(role === 'victim' ? '/victim' : role === 'police' ? '/police' : '/admin');
+    if (!authLoading && isAuthenticated && user) {
+      navigate(user.role === 'victim' ? '/victim' : user.role === 'police' ? '/police' : '/admin');
     }
-  }, [isAuthenticated, authLoading, role, navigate]);
+  }, [isAuthenticated, authLoading, user, navigate]);
 
   const validateSaId = (id: string): boolean => {
     // Simple validation: just check it's exactly 13 digits
